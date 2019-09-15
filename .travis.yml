@@ -1,0 +1,27 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t elanton91/react-test -f ./client/Dockerfile.dev ./client
+#Hier Installation der Development-Applikation, damit Travis auf die testfunktionen zugreifen kann!
+# Erst nach erfolgreichem Testen wird Travis verwendet, um die Production-Version zu bauen
+
+#primary test running section
+#wenn ein hier angegebener test nicht 0 zurückgibt, dann meldet Travis das
+# es können mehrere Skripte durchgeführt werden
+script:
+  - docker run -e CI=true elanton91/react-test npm test
+
+after_success:
+  - docker build -t elanton91/multi-client ./client
+  - docker build -t elanton91/multi-nginx ./nginx
+  - docker build -t elanton91/multi-server ./server
+  - docker build -t elanton91/multi-worker ./worker
+# Nächster Schritt: Images sollen auf eigenem Docker Repository gespeichert werden
+#Hierzu: Log-In in die Docker CLI (Erstellen von Umgebungsvariablen auf Travis)
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  - docker push elanton91/multi-client
+  - docker push elanton91/multi-nginx
+  - docker push elanton91/multi-server
+  - docker push elanton91/multi-worker
